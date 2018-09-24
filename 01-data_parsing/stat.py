@@ -6,15 +6,15 @@ import codecs
 from collections import Counter
 
 MODES = ['composer', 'century']
-YEAR_FORMATS = [r'Composition\s*Year:\s(\d{3,4}).*\n', r'Composition\s*Year:\s(\d*)\w{2}\scentury\n', r'Composition\s*Year:\s[a-z.]{2,3}\s(\d{3,4}).*\n']
+YEAR_FORMATS = [r'Composition\s*Year:\s(\d{3,4}).*\n', r'Composition\s*Year:\s(\d*)\w{2}\scentury\n', r'Composition\s*Year:\s\D+\s(\d{3,4}).*\n', r'Composition\s*Year:\s\d*.\s\d*.\s(\d{3,4}).*\n']
+COMPOSER = {'LINE': r'Composer:\s(.*)\n', 'YEAR': r'(.*?)\(.*?\)'}
 
 if len(sys.argv) != 3:
     raise ValueError('Wrong number of arguments passed')
 if sys.argv[2] not in MODES:
     raise ValueError('Unknown mode passed, possible values are: ', MODES)
 
-#file = codecs.open(sys.argv[1], 'r', encoding = "cp1250", errors='ignore')
-file = open(sys.argv[1], 'r', encoding="utf-8")
+file = open(sys.argv[1], errors = 'ignore')
 mode = sys.argv[2]
 
 ctr = Counter()
@@ -23,12 +23,12 @@ ctr = Counter()
 suf = lambda n: "%d%s"%(n,{1:"st",2:"nd",3:"rd"}.get(n if n<20 else n%10,"th"))
 
 def century(year):
-    c = year // 100 + 1
+    c = year // 100 + (1 if year % 100 != 0 else 0)
     return(suf(c) + ' century')
 
 if mode == 'composer':
-    rcomposer = re.compile(r'Composer:\s(.*)\n')
-    ryear = re.compile(r'(.*?)\(.*?\)')
+    rcomposer = re.compile(COMPOSER['LINE'])
+    ryear = re.compile(COMPOSER['YEAR'])
 
 if mode == 'century':
     ryf = []
@@ -55,23 +55,5 @@ for line in file:
                 elif len(y) > 0:
                     ctr[suf(int(y)) + ' century'] += 1
 
-for k, v in ctr.items():
+for k, v in ctr.most_common():
     print(k, ': ', v, sep = '')
-
-'''
-found year formats:
-XXXX
-XXXX Leipzig
-XXXX/XXXX
-XXXX--XXXX
-XXXX, Hamburg
-\w*\s*Year:\s(\d{3,4}).*\n
-
-XXth century
-\w*\s*Year:\s(\d*)\w{2}\scentury\n
-
-ca XXXX
-ca. XXXX
-\w*\s*Year:\s[a-z.]{2,3}\s(\d{3,4}).*\n
-'''
-
