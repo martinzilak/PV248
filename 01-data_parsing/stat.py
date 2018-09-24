@@ -7,7 +7,7 @@ from collections import Counter
 
 MODES = ['composer', 'century']
 YEAR_FORMATS = [r'Composition\s*Year:\s(\d{3,4}).*\n', r'Composition\s*Year:\s(\d*)\w{2}\scentury\n', r'Composition\s*Year:\s\D+\s(\d{3,4}).*\n', r'Composition\s*Year:\s\d*.\s\d*.\s(\d{3,4}).*\n']
-COMPOSER = {'LINE': r'Composer:\s(.*)\n', 'YEAR': r'(.*?)\(.*?\)'}
+COMPOSER = {'LINE': r'Composer:\s(.*)\n', 'YEAR': r'(.*?)\(.?\d+.*\)'}
 
 if len(sys.argv) != 3:
     raise ValueError('Wrong number of arguments passed')
