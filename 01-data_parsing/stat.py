@@ -6,14 +6,15 @@ import codecs
 from collections import Counter
 
 MODES = ['composer', 'century']
-YEAR_FORMATS = [r'\w*\s*Year:\s(\d{3,4}).*\n', r'\w*\s*Year:\s(\d*)\w{2}\scentury\n', r'\w*\s*Year:\s[a-z.]{2,3}\s(\d{3,4}).*\n']
+YEAR_FORMATS = [r'Composition\s*Year:\s(\d{3,4}).*\n', r'Composition\s*Year:\s(\d*)\w{2}\scentury\n', r'Composition\s*Year:\s[a-z.]{2,3}\s(\d{3,4}).*\n']
 
 if len(sys.argv) != 3:
     raise ValueError('Wrong number of arguments passed')
 if sys.argv[2] not in MODES:
     raise ValueError('Unknown mode passed, possible values are: ', MODES)
 
-file = codecs.open(sys.argv[1], 'r', encoding = "cp1250", errors='ignore')
+#file = codecs.open(sys.argv[1], 'r', encoding = "cp1250", errors='ignore')
+file = open(sys.argv[1], 'r', encoding="utf-8")
 mode = sys.argv[2]
 
 ctr = Counter()
