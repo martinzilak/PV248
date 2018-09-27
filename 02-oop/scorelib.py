@@ -1,5 +1,4 @@
 from enum import Enum
-from os import linesep
 
 class Print:
     def __init__(self, edition = None, print_id = None, partiture = None):
@@ -8,7 +7,7 @@ class Print:
         self.partiture = partiture
 
     def format(self):
-        print(Line.PRINT_NUMBER.value, ': ', self.print_id, sep = '', end = linesep)
+        print(Line.PRINT_NUMBER.value, ': ', self.print_id, sep = '', end = '\n')
 
     def composition(self):
         return self.edition.composition
