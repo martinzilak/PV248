@@ -1,46 +1,29 @@
+from enum import Enum
+from os import linesep
+
 class Print:
     def __init__(self, edition = None, print_id = None, partiture = None):
         self.edition = edition
         self.print_id = print_id
         self.partiture = partiture
 
-    '''
-    @property
-    def edition(self):
-        return self._edition
-
-    @edition.setter
-    def edition(self, edition):
-        self._edition = edition
-
-    @property
-    def print_id(self):
-        return self._print_id
-
-    @print_id.setter
-    def print_id(self, print_id):
-        self._print_id = print_id
-
-    @property
-    def partiture(self):
-        return self._partiture
-
-    @partiture.setter
-    def partiture(self, partiture):
-        self._partiture = partiture
-    '''
-
     def format(self):
-        pass
+        print(Line.PRINT_NUMBER.value, ': ', self.print_id, sep = '', end = linesep)
 
     def composition(self):
         return self.edition.composition
 
 class Edition:
-    def __init__(self, composition = None, authors = None, name = None):
+
+    editions = []
+
+    def __init__(self, composition = None, authors = [], name = None):
         self.composition = composition
         self.authors = authors
         self.name = name
+
+    def get(self, name):
+        return next((x for x in self.editions if x.name == name), Edition(name = name))
 
 class Composition:
     def __init__(self, name = None, incipit = None, key = None, genre = None, year = None, voices = None, authors = None):
@@ -62,3 +45,17 @@ class Person:
         self.name = name
         self.born = born
         self.died = died
+
+class Line(Enum):
+    PRINT_NUMBER = 'Print Number'
+    COMPOSER = 'Composer'
+    TITLE = 'Title'
+    GENRE = 'Genre'
+    KEY = 'Key'
+    COMPOSITION_YEAR = 'Composition Year'
+    PUBLICATION_YEAR = 'Publication Year'
+    EDITION = 'Edition'
+    EDITOR = 'Editor'
+    VOICE = 'Voice'
+    PARTITURE = 'Partiture'
+    INCIPIT = 'Incipit'
