@@ -1,7 +1,7 @@
 from enum import Enum
 
 class Print:
-    def __init__(self, edition = None, print_id = None, partiture = None):
+    def __init__(self, edition = None, print_id = -1, partiture = None):
         self.edition = edition
         self.print_id = print_id
         self.partiture = partiture
@@ -21,8 +21,14 @@ class Edition:
         self.authors = authors
         self.name = name
 
-    def get(self, name):
-        return next((x for x in self.editions if x.name == name), Edition(name = name))
+    @classmethod
+    def get(cls, name):
+        for x in cls.editions:
+            if x.name == name:
+                return x
+        e = Edition(name = name)
+        cls.editions.append(e)
+        return e
 
 class Composition:
     def __init__(self, name = None, incipit = None, key = None, genre = None, year = None, voices = None, authors = None):
