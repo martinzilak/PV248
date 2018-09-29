@@ -10,16 +10,16 @@ Regex = {
     'ANYTHING_AFTER_COLON': r'.*?:(.*)',
     'COMPOSER': r'(.+?)\((\d*)(-{1,2}|\+|\*)(\d*)\)',
     'Y': r'.*?(y)',
-    'COMPOSITION_YEAR': r'.*?(\d{3,})'
+    'COMPOSITION_YEAR': r'.*?(\d{3,})',
+    'VOICE': r'\s*(?:(\S+?)(-{1,2})(\S+?)(?:,|;)\s*){0,1}(.*)',
+    'EDITOR': r'(?:(?:\w+\.?)(?:\,?\s+))?(?:\w+\.?)'
 }
 
 def parseSimple(line, regex, group = 1, defval = None, parseint = False):
     r = re.compile(Regex[regex])
     m = r.match(line)
-    print(line, 're:', Regex[regex], r, '\nmatch:', m, '\n')
     if m:
-        if group != 0:
-            m = m.group(group)
+        m = m.group(group)
         return m.strip() if not parseint else int(m.strip())
     return defval
 
@@ -48,8 +48,37 @@ def parseComposer(line):
 
 def parseEdition(name):
     if name == None:
-        return None
+        Edition.get(name = '')
     return Edition.get(name = name)
+
+def parseEditor(line):
+    editors = []
+    if line == None:
+        return editors
+    r = re.compile(Regex['EDITOR'])
+    m = r.findall(line)
+    for name in m:
+        p = Person()
+        p.name = name
+        editors.append(p)
+    return editors
+
+def parseVoice(line):
+    v = Voice()
+    if line == None:
+        return v
+    r = re.compile(Regex['VOICE'])
+    m = r.match(line.strip())
+    if m:
+        v.name = m.group(4)
+        range = ''
+        if m.group(1):
+            range += m.group(1)
+        range += '--'
+        if m.group(3):
+            range += m.group(3)
+        v.range = range if len(range) > 2 else None
+    return v
 
 def parsePartiture(line):
     return True if parseSimple(line, 'Y') else False
@@ -61,7 +90,7 @@ def parse(_temp, line):
     if starts(line, Line.PRINT_NUMBER):
         _temp['print'].print_id = parseSimple(line, 'NUMBER', parseint = True)
     elif starts(line, Line.COMPOSER):
-        _temp['composition'].authors = parseSimple(line, 'ANYTHING_AFTER_COLON')
+        _temp['composition'].authors = parseComposer(parseSimple(line, 'ANYTHING_AFTER_COLON'))
     elif starts(line, Line.TITLE):
         _temp['composition'].name = parseSimple(line, 'ANYTHING_AFTER_COLON')
     elif starts(line, Line.GENRE):
@@ -75,9 +104,9 @@ def parse(_temp, line):
     elif starts(line, Line.EDITION):
         _temp['edition'] = parseEdition(parseSimple(line, 'ANYTHING_AFTER_COLON'))
     elif starts(line, Line.EDITOR):
-        pass
+        _temp['edition'].authors.extend(parseEditor(parseSimple(line, 'ANYTHING_AFTER_COLON')))
     elif starts(line, Line.VOICE):
-        pass
+        _temp['voices'].append(parseVoice(parseSimple(line, 'ANYTHING_AFTER_COLON')))
     elif starts(line, Line.PARTITURE):
         _temp['print'].partiture = parsePartiture(line)
     elif starts(line, Line.INCIPIT):
@@ -87,11 +116,13 @@ def process(block):
     _print = Print()
     composition = Composition()
     edition = Edition()
-    _temp = {'print': _print, 'composition': composition, 'edition': edition}
+    voices = []
+    _temp = {'print': _print, 'composition': composition, 'edition': edition, 'voices': voices}
 
     for line in block:
         parse(_temp, line)
 
+    composition.voices = voices
     edition.composition = composition
     _print.edition = edition
 
