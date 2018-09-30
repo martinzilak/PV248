@@ -12,7 +12,7 @@ Regex = {
     'Y': r'.*?(y)',
     'COMPOSITION_YEAR': r'.*?(\d{3,})',
     'VOICE': r'\s*(?:(\S+?)(-{1,2})(\S+?)(?:,|;)\s*){0,1}(.*)',
-    'EDITOR': r'(?:(?:\w+\.?)(?:\,?\s+))?(?:\w+\.?)'
+    'EDITOR': r'(?:(?:[^\,]+\.?)(?:\,?\s+))?(?:[^\,]+\.?)'
 }
 
 def parseSimple(line, regex, group = 1, defval = None, parseint = False):
@@ -48,8 +48,8 @@ def parseComposer(line):
 
 def parseEdition(name):
     if name == None:
-        Edition.get(name = '')
-    return Edition.get(name = name)
+        return ''
+    return name
 
 def parseEditor(line):
     editors = []
@@ -59,7 +59,7 @@ def parseEditor(line):
     m = r.findall(line)
     for name in m:
         p = Person()
-        p.name = name
+        p.name = name.strip()
         editors.append(p)
     return editors
 
@@ -102,9 +102,9 @@ def parse(_temp, line):
     elif starts(line, Line.PUBLICATION_YEAR):
         pass
     elif starts(line, Line.EDITION):
-        _temp['edition'] = parseEdition(parseSimple(line, 'ANYTHING_AFTER_COLON'))
+        _temp['edition'].name = parseSimple(line, 'ANYTHING_AFTER_COLON')
     elif starts(line, Line.EDITOR):
-        _temp['edition'].authors.extend(parseEditor(parseSimple(line, 'ANYTHING_AFTER_COLON')))
+        _temp['edition'].authors = parseEditor(parseSimple(line, 'ANYTHING_AFTER_COLON'))
     elif starts(line, Line.VOICE):
         _temp['voices'].append(parseVoice(parseSimple(line, 'ANYTHING_AFTER_COLON')))
     elif starts(line, Line.PARTITURE):
@@ -140,11 +140,12 @@ def load(filename):
             else:
                 blocks.append(reading)
                 reading = []
+        blocks.append(reading)
 
     for block in blocks:
         prints.append(process(block))
 
-    return sorted(prints, key = lambda x: x.print_id)
+    return list(filter(lambda y: y.print_id >= 0, sorted(prints, key = lambda x: x.print_id)))
 
 def main():
     if len(argv) != 2:
@@ -152,7 +153,6 @@ def main():
 
     for _print in load(argv[1]):
         _print.format()
-        print('\n')
 
 if __name__ == '__main__':
     main()
