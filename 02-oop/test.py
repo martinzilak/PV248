@@ -8,7 +8,7 @@ import re
 Regex = {
     'NUMBER': r'.*?(\d+)',
     'ANYTHING_AFTER_COLON': r'.*?:(.*)',
-    'COMPOSER': r'(.+?)\((\d*)(-{1,2}|\+|\*)(\d*)\)',
+    'COMPOSER': r'(.+?)\(([^-]*)(-{1,2}|\+|\*)([^-]*)\)',
     'Y': r'.*?(y)',
     'COMPOSITION_YEAR': r'.*?(\d{3,})',
     'VOICE': r'\s*(?:(\S+?)(-{2})(\S+?)(?:,|;)\s*){0,1}(.*)',
@@ -23,6 +23,13 @@ def parseSimple(line, regex, group = 1, defval = None, parseint = False):
         return m.strip() if not parseint else int(m.strip())
     return defval
 
+def isInt(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
 def parseComposer(line):
     if line == None:
         return []
@@ -34,13 +41,13 @@ def parseComposer(line):
         m = r.match(composer)
         if m:
             person.name = m.group(1)
-            if m.group(2):
+            if m.group(2) and isInt(m.group(2)):
                 person.born = int(m.group(2))
-            if m.group(4):
+            if m.group(4) and isInt(m.group(4)):
                 if m.group(3) == '*':
-                    person.born = m.group(4)
+                    person.born = int(m.group(4))
                 else:
-                    person.died = m.group(4)
+                    person.died = int(m.group(4))
         else:
             person.name = composer
         authors.append(person)

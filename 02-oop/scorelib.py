@@ -11,8 +11,8 @@ class Composition:
         self.authors = authors
 
     def format1(self):
-        if(len(self.authors) > 0):
-            print('{}: {}'.format(Line.COMPOSER.value, self.format_authors()))
+        if(len(self.authors) > 0 and len(self.formatAuthors()) > 0):
+            print('{}: {}'.format(Line.COMPOSER.value, self.formatAuthors()))
         if(self.name):
             print('{}: {}'.format(Line.TITLE.value, self.name))
         if(self.genre):
@@ -30,7 +30,7 @@ class Composition:
                     i += 1
                     print('{} {}: {}'.format(Line.VOICE.value, i, v.formatted()))
 
-    def format_authors(self):
+    def formatAuthors(self):
         formatted = ''
         for a in self.authors:
             formatted += a.formatted() + "; "
@@ -47,10 +47,10 @@ class Edition:
         if(self.name):
             print('{}: {}'.format(Line.EDITION.value, self.name))
         if(len(self.authors) > 0):
-            print('{}: {}'.format(Line.EDITOR.value, self.format_authors()))
+            print('{}: {}'.format(Line.EDITOR.value, self.formatAuthors()))
         self.composition.format2()
 
-    def format_authors(self):
+    def formatAuthors(self):
         formatted = ''
         for a in self.authors:
             formatted += a.formatted() + ", "
