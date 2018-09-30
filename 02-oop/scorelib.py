@@ -23,9 +23,12 @@ class Composition:
             print('{}: {}'.format(Line.COMPOSITION_YEAR.value, self.year))
 
     def format2(self):
-        if(len(self.voices) > 0 and (self.voices[0].name or self.voices[0].range)):
-            for i in range(0, len(self.voices)):
-                print('{} {}: {}'.format(Line.VOICE.value, (i + 1), self.voices[i].formatted()))
+        if(len(self.voices) > 0):
+            i = 0
+            for v in self.voices:
+                if(v.name or v.range):
+                    i += 1
+                    print('{} {}: {}'.format(Line.VOICE.value, i, v.formatted()))
 
     def format_authors(self):
         formatted = ''
