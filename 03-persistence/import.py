@@ -27,6 +27,7 @@ SELECTS = {
     'print': 'select id from print where partiture = ? and edition = ?'
 }
 
+
 def insert_person(cur, name, born, died):
     cur.execute(SELECTS['person'], (name,))
     data = cur.fetchone()
@@ -36,66 +37,49 @@ def insert_person(cur, name, born, died):
     else:
         return data[0]
 
-def insert_score(cur, name, genre, key, incipit, year):
-    cur.execute(SELECTS['score'], (name, genre, key, incipit, year,))
+
+def insert_into(table, cur, params):
+    cur.execute(SELECTS[table], params)
     data = cur.fetchone()
     if data is None:
-        cur.execute(INSERTS['score'], (name, genre, key, incipit, year,))
+        cur.execute(INSERTS[table], params)
         return cur.lastrowid
     else:
         return data[0]
-    
-def insert_voice(cur, name, number, score, range):
-    cur.execute(SELECTS['voice'], (name, number, score, range,))
-    data = cur.fetchone()
-    if data is None:
-        cur.execute(INSERTS['voice'], (name, number, score, range,))
-        return cur.lastrowid
-    else:
-        return data[0]
-    
-def insert_edition(cur, name, score, year):
-    cur.execute(SELECTS['edition'], (name, score, year,))
-    data = cur.fetchone()
-    if data is None:
-        cur.execute(INSERTS['edition'], (name, score, year,))
-        return cur.lastrowid
-    else:
-        return data[0]
-    
-def insert_score_author(cur, score, composer):
-    cur.execute(SELECTS['score_author'], (score, composer,))
-    data = cur.fetchone()
-    if data is None:
-        cur.execute(INSERTS['score_author'], (score, composer,))
-        return cur.lastrowid
-    else:
-        return data[0]
-    
-def insert_edition_author(cur, edition, editor):
-    cur.execute(SELECTS['edition_author'], (edition, editor,))
-    data = cur.fetchone()
-    if data is None:
-        cur.execute(INSERTS['edition_author'], (edition, editor,))
-        return cur.lastrowid
-    else:
-        return data[0]
-    
-def insert_print(cur, partiture, edition):
-    cur.execute(SELECTS['print'], (partiture, edition,))
-    data = cur.fetchone()
-    if data is None:
-        cur.execute(INSERTS['print'], (partiture, edition,))
-        return cur.lastrowid
-    else:
-        return data[0]
+
+
+def insert_score(cur):
+    insert_into('score', cur, (name, genre, key, incipit, year,))
+
+
+def insert_voice(cur):
+    insert_into('voice', cur, (name, number, score, range,))
+
+
+def insert_edition(cur):
+    insert_into('edition', cur, (name, score, year,))
+
+
+def insert_score_author(cur):
+    insert_into('score_author', cur, (score, composer,))
+
+
+def insert_edition_author(cur):
+    insert_into('edition_author', cur, (edition, editor,))
+
+
+def insert_print(cur):
+    insert_into('print', cur, (partiture, edition,))
+
 
 def db_connect(db_path=DEFAULT_PATH):
     con = sqlite3.connect(db_path)
     return con
 
+
 def persist(cur, p):
     pass
+
 
 def main():
     if len(argv) != 2:
@@ -109,6 +93,7 @@ def main():
 
     for p in scorelib.load(argv[1]):
         persist(cur, p)
+
 
 if __name__ == '__main__':
     main()
