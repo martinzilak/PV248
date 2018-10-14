@@ -14,7 +14,7 @@ INSERTS = {
     'edition': 'insert into edition(name, score, year) values (?, ?, ?)',
     'score_author': 'insert into score_author(score, composer) values (?, ?)',
     'edition_author': 'insert into edition_author(edition, editor) values (?, ?)',
-    'print': 'insert into print(partiture, edition) values (?, ?)'
+    'print': 'insert into print(id, partiture, edition) values (?, ?, ?)'
 }
 SELECTS = {
     'person': 'select id from person where name = ?',
@@ -23,54 +23,52 @@ SELECTS = {
     'edition': 'select id from edition where name = ? and score = ? and year = ?',
     'score_author': 'select id from score_author where score = ? and composer = ?',
     'edition_author': 'select id from edition_author where edition = ? and editor = ?',
-    'print': 'select id from print where partiture = ? and edition = ?'
+    'print': 'select id from print where id = ? and partiture = ? and edition = ?'
 }
 
 
-def insert_person(cur, con, name, born, died):
+def insert_person(cur, name, born, died):
     cur.execute(SELECTS['person'], (name,))
     data = cur.fetchone()
     if data is None:
         cur.execute(INSERTS['person'], (name, born, died,))
-        con.commit()
         return cur.lastrowid
     else:
         return data[0]
 
 
-def insert_into(table, cur, con, params):
+def insert_into(table, cur, params):
     cur.execute(SELECTS[table], params)
     data = cur.fetchone()
     if data is None:
         cur.execute(INSERTS[table], params)
-        con.commit()
         return cur.lastrowid
     else:
         return data[0]
 
 
-def insert_score(cur, con, name, genre, key, incipit, year):
-    insert_into('score', cur, con, (name, genre, key, incipit, year,))
+def insert_score(cur, name, genre, key, incipit, year):
+    return insert_into('score', cur, (name, genre, key, incipit, year,))
 
 
-def insert_voice(cur, con, name, number, score, range):
-    insert_into('voice', cur, con, (name, number, score, range,))
+def insert_voice(cur, name, number, score, range):
+    return insert_into('voice', cur, (name, number, score, range,))
 
 
-def insert_edition(cur, con, name, score, year):
-    insert_into('edition', cur, con, (name, score, year,))
+def insert_edition(cur, name, score, year):
+    return insert_into('edition', cur, (name, score, year,))
 
 
-def insert_score_author(cur, con, score, composer):
-    insert_into('score_author', cur, con, (score, composer,))
+def insert_score_author(cur, score, composer):
+    return insert_into('score_author', cur, (score, composer,))
 
 
-def insert_edition_author(cur, con, edition, editor):
-    insert_into('edition_author', cur, con, (edition, editor,))
+def insert_edition_author(cur, edition, editor):
+    return insert_into('edition_author', cur, (edition, editor,))
 
 
-def insert_print(cur, con, partiture, edition):
-    insert_into('print', cur, con, (partiture, edition,))
+def insert_print(cur, id, partiture, edition):
+    return insert_into('print', cur, (id, partiture, edition,))
 
 
 def db_connect(db_path):
@@ -78,8 +76,22 @@ def db_connect(db_path):
     return con
 
 
-def persist(cur, con, p):
-    pass
+def persist(cur, p):
+    comp = p.composition()
+    s_id = insert_score(cur, comp.name, comp.genre, comp.key, comp.incipit, comp.year)
+    sa_id = []
+    for author in comp.authors:
+        per_id = insert_person(cur, author.name, author.born, author.died)
+        sa_id.append(insert_score_author(cur, s_id, per_id))
+    v_id = []
+    for num in range(len(comp.voices)):
+        v_id.append(insert_voice(cur, comp.voices[num].name, num, s_id, comp.voices[num].range))
+    e_id = insert_edition(cur, p.edition.name, s_id, None)
+    ea_id = []
+    for author in p.edition.authors:
+        per_id = insert_person(cur, author.name, author.born, author.died)
+        ea_id.append(insert_edition_author(cur, e_id, per_id))
+    p_id = insert_print(cur, p.print_id, 'Y' if p.partiture else 'N', e_id)
 
 
 def main():
@@ -95,10 +107,12 @@ def main():
 
     tables = open(TABLES).read()
     cur.executescript(tables)
-    con.commit()
 
     for p in scorelib.load(argv[1]):
-        persist(cur, con, p)
+        persist(cur, p)
+
+    con.commit()
+    con.close()
 
 
 if __name__ == '__main__':
