@@ -25,6 +25,10 @@ SELECTS = {
     'edition_author': 'select id from edition_author where edition = ? and editor = ?',
     'print': 'select id from print where id = ? and partiture = ? and edition = ?'
 }
+UPDATES = {
+    'person_born': 'update person set born = ? where id = ?',
+    'person_died': 'update person set died = ? where id = ?'
+}
 
 
 def insert_person(cur, name, born, died):
@@ -32,8 +36,15 @@ def insert_person(cur, name, born, died):
     data = cur.fetchone()
     if data is None:
         cur.execute(INSERTS['person'], (name, born, died,))
+        print('INSERT: id: {}, name: {}, born: {}, died: {}'.format(cur.lastrowid, name, born, died))
         return cur.lastrowid
     else:
+        if born:
+            cur.execute(UPDATES['person_born'], (born, data[0],))
+            print('UPDATE: id: {}, name: {}, born: {}'.format(data[0], name, born))
+        if died:
+            cur.execute(UPDATES['person_died'], (died, data[0],))
+            print('UPDATE: id: {}, name: {}, died: {}'.format(data[0], name, died))
         return data[0]
 
 
@@ -85,13 +96,14 @@ def persist(cur, p):
         sa_id.append(insert_score_author(cur, s_id, per_id))
     v_id = []
     for num in range(len(comp.voices)):
-        v_id.append(insert_voice(cur, comp.voices[num].name, num, s_id, comp.voices[num].range))
+        v_id.append(insert_voice(cur, comp.voices[num].name, num + 1, s_id, comp.voices[num].range))
     e_id = insert_edition(cur, p.edition.name, s_id, None)
     ea_id = []
     for author in p.edition.authors:
         per_id = insert_person(cur, author.name, author.born, author.died)
         ea_id.append(insert_edition_author(cur, e_id, per_id))
     p_id = insert_print(cur, p.print_id, 'Y' if p.partiture else 'N', e_id)
+    # print('print num: {}\nscore: {}\nscore authors: {}\nvoices: {}\nedition: {}\nedition authors: {}\n\n'.format(p_id, s_id, sa_id, v_id, e_id, ea_id))
 
 
 def main():

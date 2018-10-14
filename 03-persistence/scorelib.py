@@ -8,11 +8,12 @@ Regex = {
     'Y': r'.*?(y)',
     'COMPOSITION_YEAR': r'.*?(\d{3,})',
     'VOICE': r'\s*(?:(\S+?)(-{2})(\S+?)(?:,|;)\s*){0,1}(.*)',
-    'EDITOR': r'(?:(?:[^\,]+\.?)(?:\,?\s+))?(?:[^\,]+\.?)'
+    'EDITOR': r'((?:\.|\-|\w)+(?:\,)?(?:\s*)?(?:[^,])*)(?:\,\s*)?'
 }
 
+
 class Composition:
-    def __init__(self, name = None, incipit = None, key = None, genre = None, year = None, voices = [], authors = []):
+    def __init__(self, name=None, incipit=None, key=None, genre=None, year=None, voices=[], authors=[]):
         self.name = name
         self.incipit = incipit
         self.key = key
@@ -22,22 +23,22 @@ class Composition:
         self.authors = authors
 
     def format1(self):
-        if(len(self.authors) > 0 and len(self.formatAuthors()) > 0):
+        if (len(self.authors) > 0 and len(self.formatAuthors()) > 0):
             print('{}: {}'.format(Line.COMPOSER.value, self.formatAuthors()))
-        if(self.name):
+        if (self.name):
             print('{}: {}'.format(Line.TITLE.value, self.name))
-        if(self.genre):
+        if (self.genre):
             print('{}: {}'.format(Line.GENRE.value, self.genre))
-        if(self.key):
+        if (self.key):
             print('{}: {}'.format(Line.KEY.value, self.key))
-        if(self.year):
+        if (self.year):
             print('{}: {}'.format(Line.COMPOSITION_YEAR.value, self.year))
 
     def format2(self):
-        if(len(self.voices) > 0):
+        if (len(self.voices) > 0):
             i = 0
             for v in self.voices:
-                if(v.name or v.range):
+                if (v.name or v.range):
                     i += 1
                     print('{} {}: {}'.format(Line.VOICE.value, i, v.formatted()))
 
@@ -47,17 +48,18 @@ class Composition:
             formatted += a.formatted() + "; "
         return formatted[:-2]
 
+
 class Edition:
-    def __init__(self, composition = Composition(), authors = [], name = None):
+    def __init__(self, composition=Composition(), authors=[], name=None):
         self.composition = composition
         self.authors = authors
         self.name = name
 
     def format(self):
         self.composition.format1()
-        if(self.name):
+        if (self.name):
             print('{}: {}'.format(Line.EDITION.value, self.name))
-        if(len(self.authors) > 0):
+        if (len(self.authors) > 0):
             print('{}: {}'.format(Line.EDITOR.value, self.formatAuthors()))
         self.composition.format2()
 
@@ -67,8 +69,9 @@ class Edition:
             formatted += a.formatted() + ", "
         return formatted[:-2]
 
+
 class Print:
-    def __init__(self, edition = Edition(), print_id = -1, partiture = False):
+    def __init__(self, edition=Edition(), print_id=-1, partiture=False):
         self.edition = edition
         self.print_id = print_id
         self.partiture = partiture
@@ -77,23 +80,25 @@ class Print:
         print('{}: {}'.format(Line.PRINT_NUMBER.value, self.print_id))
         self.edition.format()
         print('{}: {}'.format(Line.PARTITURE.value, 'yes' if self.partiture else 'no'))
-        if(self.composition().incipit):
+        if (self.composition().incipit):
             print('{}: {}'.format(Line.INCIPIT.value, self.composition().incipit))
         print()
 
     def composition(self):
         return self.edition.composition
 
+
 class Voice:
-    def __init__(self, name = None, range = None):
+    def __init__(self, name=None, range=None):
         self.name = name
         self.range = range
 
     def formatted(self):
         return ('{}, '.format(self.range) if self.range else '') + (self.name if self.name else '')
 
+
 class Person:
-    def __init__(self, name = None, born = None, died = None):
+    def __init__(self, name=None, born=None, died=None):
         self.name = name
         self.born = born
         self.died = died
@@ -103,6 +108,7 @@ class Person:
         if self.born or self.died:
             formatted += '({}--{})'.format(self.born if self.born else '', self.died if self.died else '')
         return formatted
+
 
 class Line(Enum):
     PRINT_NUMBER = 'Print Number'
@@ -118,9 +124,8 @@ class Line(Enum):
     PARTITURE = 'Partiture'
     INCIPIT = 'Incipit'
 
-#from here on now expect mess and ugliness, 'cause supposedly those things belong here *logically*
 
-def parseSimple(line, regex, group = 1, defval = None, parseint = False):
+def parseSimple(line, regex, group=1, defval=None, parseint=False):
     r = re.compile(Regex[regex])
     m = r.match(line)
     if m:
@@ -128,12 +133,14 @@ def parseSimple(line, regex, group = 1, defval = None, parseint = False):
         return m.strip() if not parseint else int(m.strip())
     return defval
 
+
 def isInt(s):
     try:
         int(s)
         return True
     except ValueError:
         return False
+
 
 def parseComposer(line):
     if line == None:
@@ -145,7 +152,7 @@ def parseComposer(line):
         r = re.compile(Regex['COMPOSER'])
         m = r.match(composer)
         if m:
-            person.name = m.group(1)
+            person.name = m.group(1).strip()
             if m.group(2) and isInt(m.group(2)):
                 person.born = int(m.group(2))
             if m.group(4) and isInt(m.group(4)):
@@ -158,10 +165,12 @@ def parseComposer(line):
         authors.append(person)
     return authors
 
+
 def parseEdition(name):
     if name == None:
         return ''
     return name
+
 
 def parseEditor(line):
     editors = []
@@ -170,10 +179,12 @@ def parseEditor(line):
     r = re.compile(Regex['EDITOR'])
     m = r.findall(line)
     for name in m:
-        p = Person()
-        p.name = name.strip()
-        editors.append(p)
+        if len(name.strip()) > 0:
+            p = Person()
+            p.name = name.strip()
+            editors.append(p)
     return editors
+
 
 def parseVoice(line):
     v = Voice()
@@ -192,15 +203,18 @@ def parseVoice(line):
         v.range = range if len(range) > 2 else None
     return v
 
+
 def parsePartiture(line):
     return True if parseSimple(line, 'Y') else False
+
 
 def starts(line, linetype):
     return line.lower().startswith(linetype.value.lower())
 
+
 def parse(_temp, line):
     if starts(line, Line.PRINT_NUMBER):
-        _temp['print'].print_id = parseSimple(line, 'NUMBER', parseint = True)
+        _temp['print'].print_id = parseSimple(line, 'NUMBER', parseint=True)
     elif starts(line, Line.COMPOSER):
         _temp['composition'].authors = parseComposer(parseSimple(line, 'ANYTHING_AFTER_COLON'))
     elif starts(line, Line.TITLE):
@@ -210,7 +224,7 @@ def parse(_temp, line):
     elif starts(line, Line.KEY):
         _temp['composition'].key = parseSimple(line, 'ANYTHING_AFTER_COLON')
     elif starts(line, Line.COMPOSITION_YEAR):
-        _temp['composition'].year = parseSimple(line, 'COMPOSITION_YEAR', parseint = True)
+        _temp['composition'].year = parseSimple(line, 'COMPOSITION_YEAR', parseint=True)
     elif starts(line, Line.PUBLICATION_YEAR):
         pass
     elif starts(line, Line.EDITION):
@@ -223,6 +237,7 @@ def parse(_temp, line):
         _temp['print'].partiture = parsePartiture(line)
     elif starts(line, Line.INCIPIT):
         _temp['composition'].incipit = parseSimple(line, 'ANYTHING_AFTER_COLON')
+
 
 def process(block):
     _print = Print()
@@ -239,6 +254,7 @@ def process(block):
     _print.edition = edition
 
     return _print
+
 
 def load(filename):
     prints = []
@@ -257,4 +273,4 @@ def load(filename):
     for block in blocks:
         prints.append(process(block))
 
-    return list(filter(lambda y: y.print_id >= 0, sorted(prints, key = lambda x: x.print_id)))
+    return list(filter(lambda y: y.print_id >= 0, sorted(prints, key=lambda x: x.print_id)))
