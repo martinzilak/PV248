@@ -151,7 +151,7 @@ def parseComposer(line):
         person = Person()
         r = re.compile(Regex['COMPOSER'])
         m = r.match(composer)
-        if m:
+        if m and len(m.group(1).strip()) > 0:
             person.name = m.group(1).strip()
             if m.group(2) and isInt(m.group(2)):
                 person.born = int(m.group(2))
