@@ -2,12 +2,11 @@
 
 from sys import argv
 import scorelib
-import tables
 import sqlite3
 import os
 
-DATABASE = 'scorelib.dat'
-DEFAULT_PATH = os.path.join(os.path.dirname(__file__), DATABASE)
+TABLES = 'scorelib.sql'
+
 INSERTS = {
     'person': 'insert into person(name, born, died) values (?, ?, ?)',
     'score': 'insert into score(name, genre, key, incipit, year) values (?, ?, ?, ?, ?)',
@@ -28,71 +27,78 @@ SELECTS = {
 }
 
 
-def insert_person(cur, name, born, died):
+def insert_person(cur, con, name, born, died):
     cur.execute(SELECTS['person'], (name,))
     data = cur.fetchone()
     if data is None:
         cur.execute(INSERTS['person'], (name, born, died,))
+        con.commit()
         return cur.lastrowid
     else:
         return data[0]
 
 
-def insert_into(table, cur, params):
+def insert_into(table, cur, con, params):
     cur.execute(SELECTS[table], params)
     data = cur.fetchone()
     if data is None:
         cur.execute(INSERTS[table], params)
+        con.commit()
         return cur.lastrowid
     else:
         return data[0]
 
 
-def insert_score(cur):
-    insert_into('score', cur, (name, genre, key, incipit, year,))
+def insert_score(cur, con, name, genre, key, incipit, year):
+    insert_into('score', cur, con, (name, genre, key, incipit, year,))
 
 
-def insert_voice(cur):
-    insert_into('voice', cur, (name, number, score, range,))
+def insert_voice(cur, con, name, number, score, range):
+    insert_into('voice', cur, con, (name, number, score, range,))
 
 
-def insert_edition(cur):
-    insert_into('edition', cur, (name, score, year,))
+def insert_edition(cur, con, name, score, year):
+    insert_into('edition', cur, con, (name, score, year,))
 
 
-def insert_score_author(cur):
-    insert_into('score_author', cur, (score, composer,))
+def insert_score_author(cur, con, score, composer):
+    insert_into('score_author', cur, con, (score, composer,))
 
 
-def insert_edition_author(cur):
-    insert_into('edition_author', cur, (edition, editor,))
+def insert_edition_author(cur, con, edition, editor):
+    insert_into('edition_author', cur, con, (edition, editor,))
 
 
-def insert_print(cur):
-    insert_into('print', cur, (partiture, edition,))
+def insert_print(cur, con, partiture, edition):
+    insert_into('print', cur, con, (partiture, edition,))
 
 
-def db_connect(db_path=DEFAULT_PATH):
+def db_connect(db_path):
     con = sqlite3.connect(db_path)
     return con
 
 
-def persist(cur, p):
+def persist(cur, con, p):
     pass
 
 
 def main():
-    if len(argv) != 2:
+    if len(argv) != 3:
         raise ValueError('Wrong number of arguments passed')
+    dat = argv[2]
 
-    con = db_connect()
+    if os.path.isfile(dat):
+        os.remove(dat)
+
+    con = db_connect(dat)
     cur = con.cursor()
 
-    for t in tables.tables:
-        cur.execute(t)
+    tables = open(TABLES).read()
+    cur.executescript(tables)
+    con.commit()
 
     for p in scorelib.load(argv[1]):
-        persist(cur, p)
+        persist(cur, con, p)
 
 
 if __name__ == '__main__':
