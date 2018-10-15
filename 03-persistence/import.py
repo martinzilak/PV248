@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from sys import argv
-import scorelib
+from scorelib import *
 import sqlite3
 import os
 
@@ -23,7 +23,9 @@ SELECTS = {
     'edition': 'select id from edition where name = ? and score = ? and year = ?',
     'score_author': 'select id from score_author where score = ? and composer = ?',
     'edition_author': 'select id from edition_author where edition = ? and editor = ?',
-    'print': 'select id from print where id = ? and partiture = ? and edition = ?'
+    'print': 'select id from print where id = ? and partiture = ? and edition = ?',
+    'sa_p': 'select p.id from score_author sa join person p on sa.composer = p.id where sa.score = ?',
+    'v_s': 'select name, range, number from voice where score = ?'
 }
 UPDATES = {
     'person_born': 'update person set born = ? where id = ?',
@@ -32,6 +34,9 @@ UPDATES = {
 
 
 def insert_person(cur, name, born, died):
+    name = '' if name is None else name
+    born = '' if born is None else born
+    died = '' if died is None else died
     cur.execute(SELECTS['person'], (name,))
     data = cur.fetchone()
     if data is None:
@@ -46,10 +51,16 @@ def insert_person(cur, name, born, died):
 
 
 def insert_into(table, cur, params):
-    cur.execute(SELECTS[table], params)
+    parameters = []
+    for p in params:
+        if p is None or len(str(p).strip()) < 1:
+            parameters.append('')
+        else:
+            parameters.append(p)
+    cur.execute(SELECTS[table], parameters)
     data = cur.fetchone()
     if data is None:
-        cur.execute(INSERTS[table], params)
+        cur.execute(INSERTS[table], parameters)
         return cur.lastrowid
     else:
         return data[0]
@@ -118,7 +129,7 @@ def main():
     tables = open(TABLES).read()
     cur.executescript(tables)
 
-    for p in scorelib.load(argv[1]):
+    for p in load(argv[1]):
         persist(cur, p)
 
     con.commit()

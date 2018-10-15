@@ -8,7 +8,8 @@ Regex = {
     'Y': r'.*?(y)',
     'COMPOSITION_YEAR': r'.*?(\d{3,})',
     'VOICE': r'\s*(?:(\S+?)(-{2})(\S+?)(?:,|;)\s*){0,1}(.*)',
-    'EDITOR': r'((?:\.|\-|\w)+(?:\,)?(?:\s*)?(?:[^,])*)(?:\,\s*)?'
+    'EDITOR': r'((?:\.|\-|\w)+(?:\,)?(?:\s*)?(?:[^,])*)(?:\,\s*)?',
+    'VOICE_NUM': r'Voice\s*(\d+)\:.*'
 }
 
 
@@ -36,11 +37,9 @@ class Composition:
 
     def format2(self):
         if (len(self.voices) > 0):
-            i = 0
             for v in self.voices:
-                if (v.name or v.range):
-                    i += 1
-                    print('{} {}: {}'.format(Line.VOICE.value, i, v.formatted()))
+                if v.name or v.range:
+                    print(v.formatted())
 
     def formatAuthors(self):
         formatted = ''
@@ -89,12 +88,21 @@ class Print:
 
 
 class Voice:
-    def __init__(self, name=None, range=None):
+    def __init__(self, name=None, range=None, number=-1):
         self.name = name
         self.range = range
+        self.number = number
 
     def formatted(self):
-        return ('{}, '.format(self.range) if self.range else '') + (self.name if self.name else '')
+        if(self.range and self.name):
+            return ('{} {}: {}, {}'.format(Line.VOICE.value, self.number, self.range, self.name))
+        elif(self.range and not self.name):
+            return ('{} {}: {}'.format(Line.VOICE.value, self.number, self.range))
+        elif(self.name and not self.range):
+            return ('{} {}: {}'.format(Line.VOICE.value, self.number, self.name))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.range == other.range and self.number == other.number
 
 
 class Person:
@@ -106,7 +114,7 @@ class Person:
     def formatted(self):
         formatted = self.name
         if self.born or self.died:
-            formatted += '({}--{})'.format(self.born if self.born else '', self.died if self.died else '')
+            formatted += ' ({}--{})'.format(self.born if self.born else '', self.died if self.died else '')
         return formatted
 
 
@@ -186,21 +194,26 @@ def parseEditor(line):
     return editors
 
 
-def parseVoice(line):
+def parseVoice(line, num):
     v = Voice()
     if line == None:
         return v
     r = re.compile(Regex['VOICE'])
     m = r.match(line.strip())
     if m:
-        v.name = m.group(4)
-        range = ''
-        if m.group(1):
-            range += m.group(1)
-        range += '--'
-        if m.group(3):
-            range += m.group(3)
-        v.range = range if len(range) > 2 else None
+        v.number = num
+        if not m.group(1) and not m.group(2) and not m.group(3) and '--' in m.group(4) and ',' not in m.group(4) and ';' not in m.group(4):
+            v.range = m.group(4)
+            v.name = None
+        else:
+            v.name = m.group(4)
+            range = ''
+            if m.group(1):
+                range += m.group(1)
+            range += '--'
+            if m.group(3):
+                range += m.group(3)
+            v.range = range if len(range) > 2 else None
     return v
 
 
@@ -232,7 +245,7 @@ def parse(_temp, line):
     elif starts(line, Line.EDITOR):
         _temp['edition'].authors = parseEditor(parseSimple(line, 'ANYTHING_AFTER_COLON'))
     elif starts(line, Line.VOICE):
-        _temp['voices'].append(parseVoice(parseSimple(line, 'ANYTHING_AFTER_COLON')))
+        _temp['voices'].append(parseVoice(parseSimple(line, 'ANYTHING_AFTER_COLON'), parseSimple(line, 'VOICE_NUM', parseint=True)))
     elif starts(line, Line.PARTITURE):
         _temp['print'].partiture = parsePartiture(line)
     elif starts(line, Line.INCIPIT):
