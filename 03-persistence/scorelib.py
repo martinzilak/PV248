@@ -47,6 +47,13 @@ class Composition:
             formatted += a.formatted() + "; "
         return formatted[:-2]
 
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.incipit == other.incipit and self.key == other.key and \
+               self.genre == other.genre and self.voices == other.voices and self.authors == other.authors
+
 
 class Edition:
     def __init__(self, composition=Composition(), authors=[], name=None):
@@ -68,6 +75,12 @@ class Edition:
             formatted += a.formatted() + ", "
         return formatted[:-2]
 
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return self.composition == other.composition and self.authors == other.authors and self.name == other.name
+
 
 class Print:
     def __init__(self, edition=Edition(), print_id=-1, partiture=False):
@@ -86,6 +99,12 @@ class Print:
     def composition(self):
         return self.edition.composition
 
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return self.edition == other.edition and self.print_id == other.print_id and self.partiture == other.partiture
+
 
 class Voice:
     def __init__(self, name=None, range=None, number=-1):
@@ -94,12 +113,15 @@ class Voice:
         self.number = number
 
     def formatted(self):
-        if(self.range and self.name):
+        if (self.range and self.name):
             return ('{} {}: {}, {}'.format(Line.VOICE.value, self.number, self.range, self.name))
-        elif(self.range and not self.name):
+        elif (self.range and not self.name):
             return ('{} {}: {}'.format(Line.VOICE.value, self.number, self.range))
-        elif(self.name and not self.range):
+        elif (self.name and not self.range):
             return ('{} {}: {}'.format(Line.VOICE.value, self.number, self.name))
+
+    def __hash__(self):
+        return hash(str(self))
 
     def __eq__(self, other):
         return self.name == other.name and self.range == other.range and self.number == other.number
@@ -116,6 +138,12 @@ class Person:
         if self.born or self.died:
             formatted += ' ({}--{})'.format(self.born if self.born else '', self.died if self.died else '')
         return formatted
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.born == other.born and self.died == other.died
 
 
 class Line(Enum):
@@ -202,7 +230,8 @@ def parseVoice(line, num):
     m = r.match(line.strip())
     if m:
         v.number = num
-        if not m.group(1) and not m.group(2) and not m.group(3) and '--' in m.group(4) and ',' not in m.group(4) and ';' not in m.group(4):
+        if not m.group(1) and not m.group(2) and not m.group(3) and '--' in m.group(4) and ',' not in m.group(4)\
+                and ';' not in m.group(4):
             v.range = m.group(4)
             v.name = None
         else:

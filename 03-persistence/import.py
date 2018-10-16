@@ -3,9 +3,12 @@
 from sys import argv
 from scorelib import *
 import sqlite3
-import os
 
-TABLES = 'scorelib.sql'
+TABLE_DEFINITIONS = 'scorelib.sql'
+
+DROP_TABLE = 'drop table if exists {}'
+
+TABLES = ['person', 'score', 'voice', 'edition', 'score_author', 'edition_author', 'print']
 
 INSERTS = {
     'person': 'insert into person(name, born, died) values (?, ?, ?)',
@@ -16,124 +19,122 @@ INSERTS = {
     'edition_author': 'insert into edition_author(edition, editor) values (?, ?)',
     'print': 'insert into print(id, partiture, edition) values (?, ?, ?)'
 }
-SELECTS = {
-    'person': 'select id from person where name = ?',
-    'score': 'select id from score where name = ? and genre = ? and key = ? and incipit = ? and year = ?',
-    'voice': 'select id from voice where name = ? and number = ? and score = ? and range = ?',
-    'edition': 'select id from edition where name = ? and score = ? and year = ?',
-    'score_author': 'select id from score_author where score = ? and composer = ?',
-    'edition_author': 'select id from edition_author where edition = ? and editor = ?',
-    'print': 'select id from print where id = ? and partiture = ? and edition = ?',
-    'sa_p': 'select p.id from score_author sa join person p on sa.composer = p.id where sa.score = ?',
-    'v_s': 'select name, range, number from voice where score = ?'
-}
+
 UPDATES = {
     'person_born': 'update person set born = ? where id = ?',
     'person_died': 'update person set died = ? where id = ?'
 }
 
 
-def insert_person(cur, name, born, died):
-    name = '' if name is None else name
-    born = '' if born is None else born
-    died = '' if died is None else died
-    cur.execute(SELECTS['person'], (name,))
-    data = cur.fetchone()
-    if data is None:
-        cur.execute(INSERTS['person'], (name, born, died,))
-        return cur.lastrowid
+def db_connect(database):
+    return sqlite3.connect(database)
+
+
+def clear_database(cursor):
+    for table in TABLES:
+        cursor.execute(DROP_TABLE.format(table))
+
+
+def insert_into(cursor, table, parameters):
+    cursor.execute(INSERTS[table], parameters)
+    return cursor.lastrowid
+
+
+def update_by(cursor, key, parameters):
+    cursor.execute(UPDATES[key], parameters)
+
+
+def insert_person(cursor, person, people_map):
+    if person.name not in people_map:
+        people_map[person.name] = insert_into(cursor, 'person', (person.name, person.born, person.died,))
     else:
-        if born:
-            cur.execute(UPDATES['person_born'], (born, data[0],))
-        if died:
-            cur.execute(UPDATES['person_died'], (died, data[0],))
-        return data[0]
+        if person.born:
+            update_by(cursor, 'person_born', (person.born, people_map[person.name],))
+        if person.died:
+            update_by(cursor, 'person_died', (person.died, people_map[person.name],))
 
 
-def insert_into(table, cur, params):
-    parameters = []
-    for p in params:
-        if p is None or len(str(p).strip()) < 1:
-            parameters.append('')
-        else:
-            parameters.append(p)
-    cur.execute(SELECTS[table], parameters)
-    data = cur.fetchone()
-    if data is None:
-        cur.execute(INSERTS[table], parameters)
-        return cur.lastrowid
-    else:
-        return data[0]
+def insert_edition_author(cursor, edition, people_map):
+    for editor in edition.authors:
+        insert_person(cursor, editor, people_map)
 
 
-def insert_score(cur, name, genre, key, incipit, year):
-    return insert_into('score', cur, (name, genre, key, incipit, year,))
+def insert_score_author(cursor, composition, people_map):
+    for composer in composition.authors:
+        insert_person(cursor, composer, people_map)
 
 
-def insert_voice(cur, name, number, score, range):
-    return insert_into('voice', cur, (name, number, score, range,))
+def insert_score(cursor, composition, score_map, people_map):
+    if composition not in score_map:
+        score_map[composition] = \
+            insert_into(cursor, 'score', (composition.name, composition.genre, composition.key, composition.incipit, composition.year,))
+
+        for voice in composition.voices:
+            if voice.range or len(voice.name) > 0:
+                insert_into(cursor, 'voice', (voice.name, voice.number, score_map[composition], voice.range,))
+
+        for person in composition.authors:
+            insert_into(cursor, 'score_author', (score_map[composition], people_map[person.name],))
 
 
-def insert_edition(cur, name, score, year):
-    return insert_into('edition', cur, (name, score, year,))
+def insert_edition(cursor, edition, edition_map, score_map, people_map):
+    if edition not in edition_map:
+        edition_map[edition] = \
+            insert_into(cursor, 'edition', (edition.name, score_map[edition.composition], None,))
+
+        for person in edition.authors:
+            insert_into(cursor, 'edition_author', (edition_map[edition], people_map[person.name],))
 
 
-def insert_score_author(cur, score, composer):
-    return insert_into('score_author', cur, (score, composer,))
+def insert_print(cursor, print, print_map, edition_map):
+    if print not in print_map:
+        print_map[print] = \
+            insert_into(cursor, 'print', (print.print_id, 'Y' if print.partiture else 'N', edition_map[print.edition],))
 
 
-def insert_edition_author(cur, edition, editor):
-    return insert_into('edition_author', cur, (edition, editor,))
+def persist(cursor, prints):
+    people_map = {}
+    score_map = {}
+    edition_map = {}
+    print_map = {}
 
+    for i in range(4):
+        for print in prints:
+            edition = print.edition
+            composition = print.composition()
 
-def insert_print(cur, id, partiture, edition):
-    return insert_into('print', cur, (id, partiture, edition,))
+            if i == 0:
+                insert_edition_author(cursor, edition, people_map)
+                insert_score_author(cursor, composition, people_map)
 
+            if i == 1:
+                insert_score(cursor, composition, score_map, people_map)
 
-def db_connect(db_path):
-    con = sqlite3.connect(db_path)
-    return con
+            if i == 2:
+                insert_edition(cursor, edition, edition_map, score_map, people_map)
 
-
-def persist(cur, p):
-    comp = p.composition()
-    s_id = insert_score(cur, comp.name, comp.genre, comp.key, comp.incipit, comp.year)
-    sa_id = []
-    for author in comp.authors:
-        if len(author.name) > 0:
-            per_id = insert_person(cur, author.name, author.born, author.died)
-            sa_id.append(insert_score_author(cur, s_id, per_id))
-    v_id = []
-    for num in range(len(comp.voices)):
-        v_id.append(insert_voice(cur, comp.voices[num].name, num + 1, s_id, comp.voices[num].range))
-    e_id = insert_edition(cur, p.edition.name, s_id, None)
-    ea_id = []
-    for author in p.edition.authors:
-        if len(author.name) > 0:
-            per_id = insert_person(cur, author.name, author.born, author.died)
-            ea_id.append(insert_edition_author(cur, e_id, per_id))
-    p_id = insert_print(cur, p.print_id, 'Y' if p.partiture else 'N', e_id)
+            if i == 3:
+                insert_print(cursor, print, print_map, edition_map)
 
 
 def main():
     if len(argv) != 3:
         raise ValueError('Wrong number of arguments passed')
-    dat = argv[2]
+    database = argv[2]
+    entry_file = argv[1]
 
-    if os.path.isfile(dat):
-        os.remove(dat)
+    connection = db_connect(database)
+    cursor = connection.cursor()
 
-    con = db_connect(dat)
-    cur = con.cursor()
+    clear_database(cursor)
 
-    tables = open(TABLES).read()
-    cur.executescript(tables)
+    tables = open(TABLE_DEFINITIONS).read()
+    cursor.executescript(tables)
 
-    for p in load(argv[1]):
-        persist(cur, p)
+    persist(cursor, load(entry_file))
 
-    con.commit()
-    con.close()
+    connection.commit()
+    connection.close()
 
 
 if __name__ == '__main__':
