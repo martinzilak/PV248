@@ -44,14 +44,24 @@ def update_by(cursor, key, parameters):
     cursor.execute(UPDATES[key], parameters)
 
 
+def valid(values):
+    for value in values:
+        if not value:
+            return False
+        if not len(str(value)) > 0:
+            return False
+    return True
+
+
 def insert_person(cursor, person, people_map):
-    if person.name not in people_map:
-        people_map[person.name] = insert_into(cursor, 'person', (person.name, person.born, person.died,))
-    else:
-        if person.born:
-            update_by(cursor, 'person_born', (person.born, people_map[person.name],))
-        if person.died:
-            update_by(cursor, 'person_died', (person.died, people_map[person.name],))
+    if valid((person.name,)):
+        if person.name not in people_map:
+            people_map[person.name] = insert_into(cursor, 'person', (person.name, person.born, person.died,))
+        else:
+            if person.born:
+                update_by(cursor, 'person_born', (person.born, people_map[person.name],))
+            if person.died:
+                update_by(cursor, 'person_died', (person.died, people_map[person.name],))
 
 
 def insert_edition_author(cursor, edition, people_map):
@@ -65,16 +75,17 @@ def insert_score_author(cursor, composition, people_map):
 
 
 def insert_score(cursor, composition, score_map, people_map):
-    if composition not in score_map:
-        score_map[composition] = \
-            insert_into(cursor, 'score', (composition.name, composition.genre, composition.key, composition.incipit, composition.year,))
+        if composition not in score_map:
+            score_map[composition] = \
+                insert_into(cursor, 'score', (composition.name, composition.genre, composition.key, composition.incipit, composition.year,))
 
-        for voice in composition.voices:
-            if voice.range or len(voice.name) > 0:
-                insert_into(cursor, 'voice', (voice.name, voice.number, score_map[composition], voice.range,))
+            for voice in composition.voices:
+                if voice.range or len(voice.name) > 0:
+                    insert_into(cursor, 'voice', (voice.name, voice.number, score_map[composition], voice.range,))
 
-        for person in composition.authors:
-            insert_into(cursor, 'score_author', (score_map[composition], people_map[person.name],))
+            for person in composition.authors:
+                if valid((person.name,)):
+                    insert_into(cursor, 'score_author', (score_map[composition], people_map[person.name],))
 
 
 def insert_edition(cursor, edition, edition_map, score_map, people_map):
@@ -83,7 +94,8 @@ def insert_edition(cursor, edition, edition_map, score_map, people_map):
             insert_into(cursor, 'edition', (edition.name, score_map[edition.composition], None,))
 
         for person in edition.authors:
-            insert_into(cursor, 'edition_author', (edition_map[edition], people_map[person.name],))
+            if valid((person.name,)):
+                insert_into(cursor, 'edition_author', (edition_map[edition], people_map[person.name],))
 
 
 def insert_print(cursor, print, print_map, edition_map):
