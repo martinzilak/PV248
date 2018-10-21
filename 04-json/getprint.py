@@ -2,7 +2,7 @@
 
 from sys import argv
 import sqlite3
-from json_utils import *
+from utilities import *
 
 DATABASE_FILE = 'scorelib.dat'
 
@@ -13,10 +13,6 @@ join score on edition.score = score.id
 join score_author on score.id = score_author.score
 join person p on score_author.composer = p.id
 where print.id = ?"""
-
-
-def db_connect(database):
-    return sqlite3.connect(database)
 
 
 def composers_by_print_id(cursor, print_id):
