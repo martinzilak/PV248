@@ -13,7 +13,7 @@ def order_json(json_data, sort_order):
 
 def validate_values(values):
     for value in values:
-        if not value:
+        if value is None:
             return False
         if not len(str(value)) > 0:
             return False
@@ -21,7 +21,7 @@ def validate_values(values):
 
 
 def validate_value(value):
-    if not value:
+    if value is None:
         return False
     if not len(str(value)) > 0:
         return False
