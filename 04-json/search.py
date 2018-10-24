@@ -11,10 +11,9 @@ SELECTS = {
     'person': 'select name, born, died from person where id = ?',
     'score': 'select name, genre, key, incipit, year from score where id = ?',
     'voice': 'select name, range, number from voice where score = ?',
-    'edition': 'select name, score, year from edition where score = ?',
+    'edition': 'select name, score, year from edition where id = ?',
     'score_author': 'select composer from score_author where score = ?',
     'edition_author': 'select editor from edition_author where edition = ?',
-    'print': 'select id, partiture, edition from print where edition = ?',
     'initial': r"""
     select print.id, print.partiture, print.edition, person.name from person
     join score_author on person.id = score_author.composer
