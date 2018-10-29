@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from sys import argv
-import numpy as np
+import numpy.linalg as npl
 from collections import OrderedDict
 
 
@@ -15,11 +15,18 @@ def validate_value(value):
 
 def parse_equation(line, coef_by_param, results, parameters):
     if validate_value(line):
-        (equation, result) = line.split('=')
+        equation, result = line.split('=')
         pairs = OrderedDict()
-        new_variable = True
-        previous_symbol = '+'
-        for pair in equation.split():
+        split = equation.split()
+
+        if split[0].strip() in ['+', '-']:
+            new_variable = False
+            previous_symbol = split[0].strip()
+        else:
+            new_variable = True
+            previous_symbol = '+'
+
+        for pair in split:
             pair = pair.strip()
             if new_variable:
                 if pair[-1] not in parameters:
@@ -31,36 +38,42 @@ def parse_equation(line, coef_by_param, results, parameters):
                 previous_symbol = pair
                 new_variable = True
 
-    coef_by_param.append(pairs)
-
-    # if len(equations) < len(pairs.keys()):
-    #     for i in range(len(pairs.keys()) - len(equations)):
-    #         equations.append([])
-    #
-    # for index, (key, value) in enumerate(pairs.items()):
-    #     if index == parameters.index(key):
-    #         equations[parameters.index(key)].append(value)
-    #     else:
-    #         equations[index].append(0)
-    #
-    results.append(result.strip())
+        coef_by_param.append(pairs)
+        results.append(int(result.strip()))
 
 
-def build_matrixes(coef_by_param, results, parameters):
+def build_matrices(coef_by_param, results, parameters):
     A = []
     B = []
 
     for index, item in enumerate(coef_by_param):
         A.append([])
-        for inner_index, (key, value) in enumerate(item.items()):
-            if inner_index == parameters.index(key):
-                A[index].append(value)
-            else:
-                A[index].append(0)
+        for parameter in parameters:
+            A[index].append(item[parameter] if parameter in item.keys() else 0)
 
     B = results.copy()
 
     return A, B
+
+
+def solve(A, B, parameters):
+    coefficient_rank = npl.matrix_rank(A)
+    augmented_rank = npl.matrix_rank([coefficient_line + [result] for coefficient_line, result in zip(A, B)])
+
+    if coefficient_rank == augmented_rank:
+        if coefficient_rank == len(parameters):
+            return (1, npl.solve(A, B))
+        else:
+            return (len(parameters) - coefficient_rank, [])
+    else:
+        return (0, [])
+
+
+def format_solution(solution, parameters):
+    result = ''
+    for value, parameter in zip(solution, parameters):
+        result += '{} = {}, '.format(parameter, value)
+    return result[:-2]
 
 
 def main():
@@ -76,9 +89,16 @@ def main():
         for line in file:
             parse_equation(line, coef_by_param, results, parameters)
 
-    A, B = build_matrixes(coef_by_param, results, parameters)
+    parameters.sort()
+    A, B = build_matrices(coef_by_param, results, parameters)
 
-    print(A, B)
+    solution_count, solution = solve(A, B, parameters)
+    if solution_count == 0:
+        print('no solution')
+    elif solution_count == 1 and len(solution) > 0:
+        print('solution: {}'.format(format_solution(solution, parameters)))
+    else:
+        print('solution space dimension: {}'.format(solution_count))
 
 
 if __name__ == '__main__':
