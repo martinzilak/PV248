@@ -8,31 +8,47 @@ import wave
 FORMAT_CHARACTERS = {'2': 'h'}
 
 
-def split_into_windows(frames, num_of_frames, sample_width, channels):
+def split_into_windows_by_framerate(frames, framerate, num_of_frames, sample_width, channels):
     windows = []
     format_character = FORMAT_CHARACTERS[str(sample_width)]
 
     frames_iterator = struct.iter_unpack(format_character, frames)
 
-    for frame in range(num_of_frames):
-        data = 0
-        for i in range(channels):
-            data += next(frames_iterator)[0]
-        data /= channels
-        windows.append(data)
+    for window in range(num_of_frames//framerate):
+        frames = []
+        for frame in range(framerate):
+            data = 0
+            for i in range(channels):
+                data += next(frames_iterator)[0]
+            data /= channels
+            frames.append(data)
+        windows.append(frames)
 
     return windows
 
 
-def analyze_window(window, high, low):
-    pass
+def transform_and_evaluate_window(window, highest_peak, lowest_peak):
+    new_highest_peak, new_lowest_peak = highest_peak, lowest_peak
+
+    transformed_window = np.fft.rfft(window)
+    amplitudes = np.absolute(transformed_window)
+    average = np.average(amplitudes)
+
+    for frequency, amplitude in enumerate(amplitudes):
+        if amplitude >= 20 * average:
+            if frequency < new_lowest_peak:
+                new_lowest_peak = frequency
+            if frequency > new_highest_peak:
+                new_highest_peak = frequency
+
+    return new_highest_peak, new_lowest_peak
 
 
-def format_output(high, low):
-    for val in np.isinf((high, low,)):
-        if not val:
+def format_output(highest_peak, lowest_peak):
+    for val in np.isinf((highest_peak, lowest_peak,)):
+        if val:
             return 'no peaks'
-    return 'low: {}, high: {}'.format(low, high)
+    return 'low: {}, high: {}'.format(lowest_peak, highest_peak)
 
 
 def main():
@@ -40,8 +56,8 @@ def main():
         raise ValueError('Wrong number of arguments passed')
     input_file = argv[1]
 
-    high = np.inf
-    low = -np.inf
+    highest_peak = -np.inf
+    lowest_peak = np.inf
 
     with wave.open(input_file, 'rb') as file:
         channels = file.getnchannels()
@@ -50,18 +66,12 @@ def main():
         num_of_frames = file.getnframes()
         frames = file.readframes(num_of_frames)
 
-        # print(channels, framerate, sample_width, num_of_frames)
-        # python peaks.py samples/20_hz_mono.wav
-        # 1 44100 2 176400
-        # python peaks.py samples/20_hz_stereo.wav
-        # 2 44100 2 88200
+        windows_by_framerate = split_into_windows_by_framerate(frames, framerate, num_of_frames, sample_width, channels)
 
-        windows = split_into_windows(frames, num_of_frames, sample_width, channels)
+        for window in windows_by_framerate:
+            highest_peak, lowest_peak = transform_and_evaluate_window(window, highest_peak, lowest_peak)
 
-        for window in windows:
-            analyze_window(window, high, low)
-
-        print(format_output(high, low))
+        print(format_output(highest_peak, lowest_peak))
 
         file.close()
 
