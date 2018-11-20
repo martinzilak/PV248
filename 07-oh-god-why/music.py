@@ -13,7 +13,7 @@ def main():
     a_frequency = argv[1]
     input_file = argv[2]
 
-    print('no peaks')
+    print('perhaps some peaks?')
 
 
 if __name__ == '__main__':
