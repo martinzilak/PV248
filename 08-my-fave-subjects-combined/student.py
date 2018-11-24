@@ -67,8 +67,8 @@ def parse_row(headers, row_to_parse):
     output['regression slope'] = regression_slope
 
     if regression_slope != 0:
-        output['date 16'] = date.fromordinal(math.ceil((16.0 / regression_slope) + start_date)).strftime(DATE_FORMAT)
-        output['date 20'] = date.fromordinal(math.ceil((20.0 / regression_slope) + start_date)).strftime(DATE_FORMAT)
+        output['date 16'] = date.fromordinal(math.floor((16.0 / regression_slope)) + start_date).strftime(DATE_FORMAT)
+        output['date 20'] = date.fromordinal(math.floor((20.0 / regression_slope)) + start_date).strftime(DATE_FORMAT)
 
     return json.dumps(output, indent=4, ensure_ascii=False)
 
