@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from pprint import pprint
+
 from sys import argv
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -42,7 +42,7 @@ class CustomHttpRequestHandler(BaseHTTPRequestHandler):
         except:
             url_response['content'] = content
 
-        return url_response
+        return json.dumps(url_response, indent=2).encode('UTF-8')
 
     def do_GET(self):
         parameters = parse.urlparse(self.path).query
@@ -88,7 +88,7 @@ class CustomHttpRequestHandler(BaseHTTPRequestHandler):
             url_response = self.build_url_response(response)
 
             self.send_server_reply(200, len(url_response))
-            self.wfile.write(json.dumps(url_response, indent=2).encode('UTF-8'))
+            self.wfile.write(url_response)
 
 
 def main():
