@@ -26,7 +26,7 @@ class CustomHttpRequestHandler(BaseHTTPRequestHandler):
 
     def build_url_response(self, response):
         status = response.status
-        content = response.read().decode('ISO-8859-1')
+        content = response.read().decode('UTF-8')
         headers = response.getheaders()
 
         url_response = {}
