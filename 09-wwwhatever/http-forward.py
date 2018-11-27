@@ -5,7 +5,6 @@ import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib import parse, error
 from urllib.request import Request, urlopen
-import socket
 
 UPSTREAM = ''
 
@@ -51,6 +50,8 @@ class CustomHttpRequestHandler(BaseHTTPRequestHandler):
         request_url += '?{}'.format(parameters) if parameters else ''
 
         request_headers = dict(self.headers)
+        if 'Host' in request_headers:
+            del request_headers['Host']
 
         request = Request(url=request_url, data=None, headers=request_headers, method='GET')
 
@@ -59,11 +60,11 @@ class CustomHttpRequestHandler(BaseHTTPRequestHandler):
                 url_response = self.build_url_response(response)
 
                 self.send_server_reply(200, len(url_response))
-                self.wfile.write(json.dumps(url_response, indent=2).encode('UTF-8'))
-        except socket.timeout:
-            return self.send_error_reply('timeout')
+                self.wfile.write(url_response)
         except error.HTTPError as e:
             return self.send_error_reply(e.getcode())
+        except Exception as e:
+            return self.send_error_reply('timeout')
 
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
