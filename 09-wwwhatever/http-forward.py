@@ -63,7 +63,7 @@ class CustomHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(url_response)
         except error.HTTPError as e:
             return self.send_error_reply(e.getcode())
-        except Exception as e:
+        except:
             return self.send_error_reply('timeout')
 
     def do_POST(self):
@@ -98,6 +98,9 @@ def main():
         raise ValueError('Wrong number of arguments passed')
     port = int(argv[1])
     UPSTREAM = argv[2]
+
+    if not UPSTREAM.startswith('http://'):
+        UPSTREAM = 'http://{}'.format(UPSTREAM)
 
     server_address = ('', port)
     server = HTTPServer(server_address, CustomHttpRequestHandler)
