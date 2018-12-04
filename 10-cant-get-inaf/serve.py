@@ -27,9 +27,7 @@ class CustomHttpRequestHandler(CGIHTTPRequestHandler):
         path.relpath(whole_path, getcwd())
         if path.isfile(whole_path):
             if whole_path.endswith('.cgi'):
-                print(url)
-                print(whole_path)
-                self.cgi_info = '', '{}?{}'.format(path.relpath(whole_path, getcwd()), url.query)
+                self.cgi_info = '', '{}?{}'.format(path.relpath(whole_path, getcwd()), url.query if url.query else '')
                 self.run_cgi()
             else:
                 size = path.getsize(whole_path)
