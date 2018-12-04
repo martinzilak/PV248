@@ -21,13 +21,17 @@ class CustomHttpRequestHandler(CGIHTTPRequestHandler):
     def do_POST(self):
         self.handle_request()
 
+    def translate_path(self, path):
+        return path
+
     def handle_request(self):
         url = parse.urlparse(self.path)
         whole_path = path.abspath(path.join(path.abspath(DIR), url.path[1:]))
         path.relpath(whole_path, getcwd())
         if path.isfile(whole_path):
             if whole_path.endswith('.cgi'):
-                self.cgi_info = '', '{}?{}'.format(path.relpath(whole_path, getcwd()), url.query if url.query else '')
+                fix_path = path.split(path.relpath(path, getcwd()))
+                self.cgi_info = fix_path[0], '{}?{}'.format(fix_path[1], url.query if url.query else '')
                 self.run_cgi()
             else:
                 size = path.getsize(whole_path)
