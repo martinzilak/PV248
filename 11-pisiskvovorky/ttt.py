@@ -161,7 +161,6 @@ class CustomHttpRequestHandler(BaseHTTPRequestHandler):
 
 
 def main():
-    global UPSTREAM
     if len(argv) != 2:
         raise ValueError('Wrong number of arguments passed')
     port = int(argv[1])
